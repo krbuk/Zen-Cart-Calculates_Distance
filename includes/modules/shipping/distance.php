@@ -4,7 +4,7 @@
  * @copyright Copyright 2003-2018 Zen Cart Development Team
  * @copyright Portions Copyright 2003 osCommerce
  * @license http://www.zen-cart.com/license/2_0.txt GNU Public License V2.0
- * @version $Id: Nida Verkkopalvelu (www.nida.fi) / krbuk 2021 Jan 4 Module V1.1 Modified in v1.5.7 $ 
+ * @version $Id: Nida Verkkopalvelu (www.nida.fi) / krbuk 2021 Jan 4 Modified in v1.5.7 $
  */
 /**
  * Distance / Will-Call shipping method
@@ -12,7 +12,7 @@
  */
 class distance extends base {
     var $code, $title, $description, $icon, $enabled;
-	public $moduleVersion = '1.00';	
+	public $moduleVersion = '1.35';	
 
   function __construct() {
 	global $db, $order;
@@ -31,12 +31,10 @@ class distance extends base {
 	$this->customeraddress = $order->delivery['street_address'] .',' .$order->delivery['city']; 
 	$this->enabled   = (MODULE_SHIPPING_DISTANCE_STATUS == 'True');  
     
-	// $this->enabled = ((MODULE_SHIPPING_DISTANCE_STATUS == 'True' && $this->distance_km < MODULE_SHIPPING_DISTANCE_MAX  ) ? true : false);
-	  
 	if (IS_ADMIN_FLAG === true && MODULE_SHIPPING_DISTANCE_GOOGLE_API_KEY == 'GOOGLEAPIKEY'){
-		$this->title .= '<span class="alert">' .MODULE_SHIPPING_DISTANCE_ALERT_TEST .'</span>';		
+		$this->title = '<span class="alert">' .MODULE_SHIPPING_DISTANCE_ALERT_TEST .'</span>';
+	    $this->enabled = false;		
 	} 
-	  
     $this->update_status();
   }
   /**
@@ -68,11 +66,9 @@ class distance extends base {
     }
 	 
 	// Max distance checking
-	$distance_chk = getDistance($this->storeaddress, $this->customeraddress, "K");
-	$distance_chk = $distance_chk * 1000;  // convert km to meters 
-	$distance_max = MODULE_SHIPPING_DISTANCE_MAX * 1000; // convert km to meters  
+	$distance_chk = getDistance($distance_count) * 100; // convert km to meters 
+	$distance_max = MODULE_SHIPPING_DISTANCE_MAX * 100; // convert km to meters  
 	if (MODULE_SHIPPING_DISTANCE_STATUS == 'True' && $distance_chk > $distance_max) {
-		//$this->enabled = (MODULE_SHIPPING_DISTANCE_STATUS == 'False');
 		$this->enabled = false;
 	} 
 
@@ -87,25 +83,34 @@ class distance extends base {
   function quote($method = '') {
     global $db, $order;
 	  
-  	// Google calculater distance 
-	$distance = getDistance($this->storeaddress, $this->customeraddress, "K");
-	$distance_chk = $distance * 1000;  // convert km to meters 
-
-	// From setting
-	$distance_cost = MODULE_SHIPPING_DISTANCE_COST;                								//     0.8065
-	$free_cost_max = number_format(MODULE_SHIPPING_DISTANCE_MAX_FREE_COST, 2, '.', '') * 100;	//  1850
-	$distance_max  = MODULE_SHIPPING_DISTANCE_MAX * 1000; // convert km to meters 				// 12000
-	$distance_free = MODULE_SHIPPING_DISTANCE_FREE * 1000; // convert km to meters				//  5000 
-	
-	// order amount 
-    $order_amount = $order->info['total'] = zen_round($order->info['total'], 2) * 100;
+	$distance = getDistance($distance_count);
+	$distance_chk = $distance * 100; 
 	  
-	// Olasiliklar buraya gelecek
-	$distance_amount = $distance_cost * $distance;   
-	if ($distance_chk < $distance_free || $order_amount > $free_cost_max) {
-		$distance_amount = '0.00';
-	}
+	// order amount 
+	$order_amount = zen_round($order->info['subtotal'], 2) * 100;	  
 
+	// Form count setting
+	if (!MODULE_SHIPPING_DISTANCE_MIN)		  {$distance_min = 1; }        else { $distance_min = MODULE_SHIPPING_DISTANCE_MIN * 100;}	  
+	if (!MODULE_SHIPPING_DISTANCE_PERKM_COST) {$distance_perkm_cost = 1; } else { $distance_perkm_cost = MODULE_SHIPPING_DISTANCE_PERKM_COST;}
+	if (!MODULE_SHIPPING_DISTANCE_EXTRA_COST) {$extra_cost = 0; }          else { $extra_cost = MODULE_SHIPPING_DISTANCE_EXTRA_COST;}	
+	if (!MODULE_SHIPPING_DISTANCE_SHIPING_COST)	  {$shiping_cost    = 0;}  else { $shiping_cost    = MODULE_SHIPPING_DISTANCE_SHIPING_COST;}	
+	if (!MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL){$min_order_total = 0;}  else { $min_order_total = number_format(MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL, 2, '.', '') * 100;}	  
+	// this module distance,amount limit,extra cost  
+	$distance_amount = $distance * $distance_perkm_cost;
+	if ($order_amount >= $min_order_total and $distance_chk <= $distance_min)
+		{ 
+			$distance_amount = '0.00'; // $shiping_cost;
+		}
+    else if ($distance_chk <= $distance_min) 
+		{
+			$distance_amount = $shiping_cost ;
+		}
+    else if ($distance_chk >= $distance_min) 
+		{
+			$newdistance =   ($distance_chk - $distance_min) / 100 ;
+			$distance_amount = ($newdistance * $distance_perkm_cost) + $extra_cost;
+		}	  
+	
 	// module array
     $this->quotes = array('id' => $this->code,
                           'module' => MODULE_SHIPPING_DISTANCE_TEXT_TITLE,
@@ -117,9 +122,8 @@ class distance extends base {
     }
 
     if (zen_not_null($this->icon)) $this->quotes['icon'] = zen_image($this->icon, $this->title);
-
     return $this->quotes;
-  }
+    }
   /**
    * Check to see whether module is installed
    *
@@ -141,16 +145,20 @@ class distance extends base {
     global $db;
     $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Enable store to shipping address ', 'MODULE_SHIPPING_DISTANCE_STATUS', 'True', 'Do you want to offer In Store rate shipping?', '6', '0', 'zen_cfg_select_option(array(\'True\', \'False\'), ', now())");
  
-    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Google Api Key', 'MODULE_SHIPPING_DISTANCE_GOOGLE_API_KEY', 'GOOGLEAPIKEY', 'This key google devorlop api key', '6', '0', now())");	  
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Google Api Key', 'MODULE_SHIPPING_DISTANCE_GOOGLE_API_KEY', 'GOOGLEAPIKEY', 'This key google devorlop api key', '6', '0', now())");	 
 	  
-    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Shipping Cost', 'MODULE_SHIPPING_DISTANCE_COST', '0.0000', 'Per meters the shipping cost for all orders using this shipping method. ', '6', '0', now())");
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Per kilometers shipping Cost', 'MODULE_SHIPPING_DISTANCE_PERKM_COST', '0.8065', 'Per kilometers the shipping cost for all orders using this shipping method. Example tax 24% : 0.8065 -> 1€ ', '6', '0', now())");	  
 	  
-    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Free Shipping order total', 'MODULE_SHIPPING_DISTANCE_MAX_FREE_COST', '0.00', 'Per meters the shipping cost for all orders using this shipping method. ', '6', '0', now())");	  
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Shipping Cost', 'MODULE_SHIPPING_DISTANCE_SHIPING_COST', '2.4194', 'Shipping cost for all orders using this shipping method.<br> Example tax 24% : 2.4194 ->3€ ', '6', '0', now())");
 	  
-    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Maximum distance ', 'MODULE_SHIPPING_DISTANCE_MAX', '10', 'Maximum km distance -> 12 or 12.5 ', '6', '0', now())");	  
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Extra Shipping Cost', 'MODULE_SHIPPING_DISTANCE_EXTRA_COST', '2.8226', 'Fxtra shipping cost.<br> Example tax 24% : 2.8226 -> 3.50€', '6', '0', now())");	  
 	  
-    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Free distance ', 'MODULE_SHIPPING_DISTANCE_FREE', '5', 'Free cost until this distance km. 5.5km', '6', '0', now())");		  
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Minimum order total', 'MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL', '15.50', 'Free shipping order total. Example : 15.50 -> 15.50€', '6', '0', now())");
+
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Maximum distance ', 'MODULE_SHIPPING_DISTANCE_MAX', '12', 'Maximum km distance Example: 12 or 12.5 -> 12km or 12.5km ', '6', '0', now())");	  
 	  
+    $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, date_added) values ('Free distance ', 'MODULE_SHIPPING_DISTANCE_MIN', '5', 'Free cost until this distance km. Example: 5 or 5.5', '6', '0', now())");		  
+
     $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, use_function, set_function, date_added) values ('Tax Class', 'MODULE_SHIPPING_DISTANCE_TAX_CLASS', '0', 'Use the following tax class on the shipping fee.', '6', '0', 'zen_get_tax_class_title', 'zen_cfg_pull_down_tax_classes(', now())");
 	  
     $db->Execute("insert into " . TABLE_CONFIGURATION . " (configuration_title, configuration_key, configuration_value, configuration_description, configuration_group_id, sort_order, set_function, date_added) values ('Tax Basis', 'MODULE_SHIPPING_DISTANCE_TAX_BASIS', 'Shipping', 'On what basis is Shipping Tax calculated. Options are<br />Shipping - Based on customers Shipping Address<br />Billing Based on customers Billing address<br />Store - Based on Store address if Billing/Shipping Zone equals Store zone', '6', '0', 'zen_cfg_select_option(array(\'Shipping\', \'Billing\'), ', now())");
@@ -173,6 +181,6 @@ class distance extends base {
    * @return array
    */
   function keys() {
-    return array('MODULE_SHIPPING_DISTANCE_STATUS', 'MODULE_SHIPPING_DISTANCE_GOOGLE_API_KEY', 'MODULE_SHIPPING_DISTANCE_COST', 'MODULE_SHIPPING_DISTANCE_MAX_FREE_COST', 'MODULE_SHIPPING_DISTANCE_MAX', 'MODULE_SHIPPING_DISTANCE_FREE', 'MODULE_SHIPPING_DISTANCE_TAX_CLASS', 'MODULE_SHIPPING_DISTANCE_TAX_BASIS', 'MODULE_SHIPPING_DISTANCE_ZONE', 'MODULE_SHIPPING_DISTANCE_SORT_ORDER');
+    return array('MODULE_SHIPPING_DISTANCE_STATUS', 'MODULE_SHIPPING_DISTANCE_GOOGLE_API_KEY', 'MODULE_SHIPPING_DISTANCE_PERKM_COST', 'MODULE_SHIPPING_DISTANCE_SHIPING_COST', 'MODULE_SHIPPING_DISTANCE_EXTRA_COST', 'MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL','MODULE_SHIPPING_DISTANCE_MAX', 'MODULE_SHIPPING_DISTANCE_MIN', 'MODULE_SHIPPING_DISTANCE_TAX_CLASS', 'MODULE_SHIPPING_DISTANCE_TAX_BASIS', 'MODULE_SHIPPING_DISTANCE_ZONE', 'MODULE_SHIPPING_DISTANCE_SORT_ORDER');
   }
 }
