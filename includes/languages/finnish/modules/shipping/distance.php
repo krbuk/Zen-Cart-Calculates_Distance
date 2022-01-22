@@ -20,8 +20,10 @@
 // $Id: distance.php krbuk 2021 Jan 4 Modified in v1.5.7 $
 //
 
-define('MODULE_SHIPPING_DISTANCE_TEXT_TITLE', 'Etäisyys');
-define('MODULE_SHIPPING_DISTANCE_TEXT_DESCRIPTION', 'Hinta riippuu tilauksen määräpaikasta');
-define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', 'Matkan pituus');
+define('MODULE_SHIPPING_DISTANCE_TEXT_TITLE', 'Kuljetuspalvelu');
+define('MODULE_SHIPPING_DISTANCE_TEXT_DESCRIPTION', 'Hinta riippuu tilauksen määrä paikasta');
+define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', 'Etäisyys');
+define('MODULE_SHIPPING_DISTANCE_TEXT_MIN', ' min');
 define('MODULE_SHIPPING_DISTANCE_ALERT_TEST', 'Huomio: Testitila');
+define('MODULE_SHIPPING_DISTANCE_VERSION', 'Google etäisyyden version');
 ?>

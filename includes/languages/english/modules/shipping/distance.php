@@ -20,8 +20,9 @@
 // $Id: distance.php krbuk 2021 Jan 4 Modified in v1.5.7 $
 //
 
-define('MODULE_SHIPPING_DISTANCE_TEXT_TITLE', 'Destination');
-define('MODULE_SHIPPING_DISTANCE_TEXT_DESCRIPTION', 'The price depends on the destination of the order');
-define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', 'Trip Length');
+define('MODULE_SHIPPING_DISTANCE_TEXT_TITLE', 'Home delivery');
+define('MODULE_SHIPPING_DISTANCE_TEXT_DESCRIPTION', 'The price depends on the order quantity of the place');
+define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', ' mins');
 define('MODULE_SHIPPING_DISTANCE_ALERT_TEST', 'Attention: test mode');
+define('MODULE_SHIPPING_DISTANCE_VERSION', 'Google distance version');
 ?>
