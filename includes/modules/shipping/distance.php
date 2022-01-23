@@ -14,7 +14,7 @@
 
 class distance extends base {
     var $code, $title, $description, $icon, $enabled;
-	public $moduleVersion = '1.80';	
+	public $moduleVersion = '1.82';	
 
   function __construct() {
 	global $db, $order;
@@ -27,7 +27,7 @@ class distance extends base {
     $this->tax_class = MODULE_SHIPPING_DISTANCE_TAX_CLASS;
     $this->tax_basis = MODULE_SHIPPING_DISTANCE_TAX_BASIS;
 	$this->storeaddress    = STORE_NAME_ADDRESS;
-	$this->customeraddress = $order->delivery['street_address'] .',' .$order->delivery['postcode'] .' '.$order->delivery['city'];  
+	$this->orderaddress = $order->delivery['street_address'];
 	$this->enabled   = (MODULE_SHIPPING_DISTANCE_STATUS == 'True');  
 	$this->customerID = (int)$_SESSION['customer_id'];
 	// Selected address book id	   
@@ -91,13 +91,29 @@ class distance extends base {
     $storeaddress  = nl2br(STORE_NAME_ADDRESS);
 	$todelivery    = $order->delivery['street_address'] .',' .$order->delivery['postcode'] .' '.$order->delivery['city'];
 
+	// Order check for address 
+	$gd_customerorderquery = "select delivery_street_address from " . TABLE_ORDERS . " where customers_id = '" . $this->customerID . "' ";   
+	$gd_customerorder = $db->Execute($gd_customerorderquery);
+	foreach($gd_customerorder as $addresscheck) {
+		if ($addresscheck['delivery_street_address'] == $this->orderaddress)  
+		{
+			$google_distance_addresscheck =  1;
+		} else  
+			{
+				$google_distance_addresscheck =  0;
+			}
+	}		
+
 	// table address book  
 	$ad_customeraddressquery = "select * from " . TABLE_ADDRESS_BOOK . " where address_book_id = '" . $this->addressbookID . "' ";   
 	$ad_customeraddress = $db->Execute($ad_customeraddressquery); 
 
 	foreach($ad_customeraddress as $distanceadd) {
 	  if ($distanceadd['customers_id'] == $this->customerID && $distanceadd['address_book_id'] == $this->addressbookID) {
-			if ($distanceadd['distance'] == 0)
+		  	$google_distance = $distanceadd['distance'];
+			$google_duration = $distanceadd['duration'];
+		  
+			if ($distanceadd['distance'] == 0 || $google_distance_addresscheck == 0)
 			{
 			// Transferin alldata from address book table to distance table
 			// populates the distance table  
@@ -133,8 +149,7 @@ class distance extends base {
 									where address_book_id = '" . $this->addressbookID ."'
 									");	
 				} 
-	  		$google_distance = $distanceadd['distance'];
-			$google_duration = $distanceadd['duration'];		  
+		  
 			} 
 
 	} // end foreach
@@ -174,7 +189,6 @@ class distance extends base {
                           'module' => MODULE_SHIPPING_DISTANCE_TEXT_TITLE,
                           'methods' => array(array('id' => $this->code,
                                                    'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .'&nbsp;'.$distance .' km ~ ' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
-
                                                    'cost' =>  $amount)));
     if ($this->tax_class > 0) {
       $this->quotes['tax'] = zen_get_tax_rate($this->tax_class, $order->delivery['country']['id'], $order->delivery['zone_id']);
