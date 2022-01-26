@@ -14,7 +14,7 @@
 
 class distance extends base {
     var $code, $title, $description, $icon, $enabled;
-	public $moduleVersion = '1.82';	
+	public $moduleVersion = '1.83';	
 
   function __construct() {
 	global $db, $order;
@@ -165,10 +165,9 @@ class distance extends base {
 	if (!MODULE_SHIPPING_DISTANCE_PERKM_COST) { $distance_perkm_cost = 1; } else { $distance_perkm_cost = MODULE_SHIPPING_DISTANCE_PERKM_COST;}
 	if (!MODULE_SHIPPING_DISTANCE_EXTRA_COST) { $extra_cost = 0; }          else { $extra_cost = MODULE_SHIPPING_DISTANCE_EXTRA_COST;}	
 	if (!MODULE_SHIPPING_DISTANCE_SHIPING_COST) { $shiping_cost  = 0;}      else { $shiping_cost    = MODULE_SHIPPING_DISTANCE_SHIPING_COST;}
-	if (!MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL) { $min_order_total = 0;} else { $min_order_total = number_format(MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL, 2, '.', '') * 100;}	  
-	// this module distance,amount limit,extra cost 
- 
+	if (!MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL) { $min_order_total = 0;} else { $min_order_total = number_format(MODULE_SHIPPING_DISTANCE_MIN_ORDER_TOTAL, 2, '.', '') * 100;}	
 	  
+	// this module distance,amount limit,extra cost 
 	$distance_amount = $distance * $distance_perkm_cost;
 	if ($order_amount >= $min_order_total and $distance_chk <= $distance_min)
 		{ 
@@ -183,13 +182,12 @@ class distance extends base {
 			$newdistance =   ($distance_chk - $distance_min) / 100 ;
 			$distance_amount = ($newdistance * $distance_perkm_cost) + $extra_cost;
 		}	  
-	$amount = number_format($distance_amount, 2, '.', ''); 
 	// module array
     $this->quotes = array('id' => $this->code,
                           'module' => MODULE_SHIPPING_DISTANCE_TEXT_TITLE,
                           'methods' => array(array('id' => $this->code,
-                                                   'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .'&nbsp;'.$distance .' km ~ ' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
-                                                   'cost' =>  $amount)));
+                                                   'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .' '.$distance .' km ~ ' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
+                                                   'cost' =>  $distance_amount)));
     if ($this->tax_class > 0) {
       $this->quotes['tax'] = zen_get_tax_rate($this->tax_class, $order->delivery['country']['id'], $order->delivery['zone_id']);
     }
