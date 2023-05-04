@@ -14,7 +14,7 @@
 
 class distance extends base {
     var $code, $title, $description, $icon, $enabled;
-	public $moduleVersion = '1.83';	
+	public $moduleVersion = '1.89';	
 
   function __construct() {
 	global $db, $order;
@@ -127,26 +127,41 @@ class distance extends base {
 					} 
 					else 
 						{
-						  echo "<p>The request was Invalid</p>";
+						  echo "<p>" .MODULE_SHIPPING_DISTANCE_ERROR ."</p>";
 						  exit();
 						}
 						if ($origin_addresses == "" or $destination_addresses == "") 
 						{
-						  echo "<p>Destination or origin address not found</p>";
+						  //echo "<p>Destination or origin address not found</p>";
+						  echo "<p>" .MODULE_SHIPPING_DISTANCE_WRONG_ADDRESS ."</p>";	
+							
 						  exit();
 						}
 						// Get the google elements as array
-						foreach($distance_arr->rows[0]->elements as $road) {
-								$google_distance = substr($road->distance->text, 0, -3);					
-								$google_duration = substr($road->duration->text, 0, -4);
-								//$road_time += $road->duration->value;
-								//$road_distance += $road->distance->value;			
+						foreach($distance_arr->rows[0]->elements as $road) 
+						{   
+							$google_duration = substr($road->duration->text, 0, -4);
+							$kmorm  = substr($road->distance->text, -2);
+								if ($kmorm == 'km')
+								{ 
+									$google_distance_arr = substr($road->distance->text, 0, -3);
+									$google_distance = $google_distance_arr; 
+								}
+								else
+								{
+									$google_distance_arr = substr($road->distance->text, 0, -2);
+									$google_distance = $google_distance_arr / 100; 									
+								}
+							//$google_distance = substr($road->distance->text, 0, -3);					
+							//$google_duration = substr($road->duration->text, 0, -4);
+							//$google_duration = $road->duration->value;
+							//$google_distance = $road->distance->value;			
 						}					
 				
 						$db->Execute("UPDATE " . TABLE_ADDRESS_BOOK . " 
 								SET	distance = '" .$google_distance ."', 
 									duration = '" .$google_duration ."'
-									where address_book_id = '" . $this->addressbookID ."'
+					   where address_book_id = '" .$this->addressbookID ."'
 									");	
 				} 
 		  
@@ -171,22 +186,35 @@ class distance extends base {
 	$distance_amount = $distance * $distance_perkm_cost;
 	if ($order_amount >= $min_order_total and $distance_chk <= $distance_min)
 		{ 
-			$distance_amount = $shiping_cost;  //if free cost change to $distance_amount = '0.00';
+			$distance_amount = $shiping_cost;
+			// if free cost
+			//$distance_amount = '0.00';  
 		}
-    else if ($distance_chk <= $distance_min) 
+	  else if ($order_amount <= $min_order_total and $distance_chk >= $distance_min) 
+		{ 
+			$newdistance =   ($distance_chk - $distance_min) / 100 ;
+			$distance_amount = ($newdistance * $distance_perkm_cost) + $extra_cost;
+		}	  
+	  else if ($order_amount <= $min_order_total) 
+		{ 
+			$distance_amount = $extra_cost ;
+		}
+	  
+	  else if ($distance_chk <= $distance_min) 
 		{
 			$distance_amount = $shiping_cost ;
 		}
-    else if ($distance_chk >= $distance_min) 
+	  else if ($distance_chk >= $distance_min) 
 		{
 			$newdistance =   ($distance_chk - $distance_min) / 100 ;
 			$distance_amount = ($newdistance * $distance_perkm_cost) + $extra_cost;
 		}	  
-	// module array
+	// module array	  
+	  
     $this->quotes = array('id' => $this->code,
                           'module' => MODULE_SHIPPING_DISTANCE_TEXT_TITLE,
                           'methods' => array(array('id' => $this->code,
-                                                   'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .' '.$distance .' km ~ ' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
+                                                   'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .' '.$distance .' km - arvio  ' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
                                                    'cost' =>  $distance_amount)));
     if ($this->tax_class > 0) {
       $this->quotes['tax'] = zen_get_tax_rate($this->tax_class, $order->delivery['country']['id'], $order->delivery['zone_id']);
