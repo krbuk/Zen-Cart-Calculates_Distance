@@ -26,4 +26,7 @@ define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', 'Etäisyys');
 define('MODULE_SHIPPING_DISTANCE_TEXT_MIN', ' min');
 define('MODULE_SHIPPING_DISTANCE_ALERT_TEST', 'Huomio: Testitila');
 define('MODULE_SHIPPING_DISTANCE_VERSION', 'Google etäisyyden version');
+define('MODULE_SHIPPING_DISTANCE_ERROR', 'Pyyntö oli virheellinen');
+define('MODULE_SHIPPING_DISTANCE_WRONG_ADDRESS', 'Määränpää osoitetta ei löydy');
+define('MODULE_SHIPPING_DISTANCE_ESTIMATED', 'arvioitu');
 ?>

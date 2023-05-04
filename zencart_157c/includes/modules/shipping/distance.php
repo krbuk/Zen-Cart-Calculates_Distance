@@ -14,7 +14,7 @@
 
 class distance extends base {
     var $code, $title, $description, $icon, $enabled;
-	public $moduleVersion = '1.89';	
+	public $moduleVersion = '1.90';	
 
   function __construct() {
 	global $db, $order;
@@ -214,7 +214,7 @@ class distance extends base {
     $this->quotes = array('id' => $this->code,
                           'module' => MODULE_SHIPPING_DISTANCE_TEXT_TITLE,
                           'methods' => array(array('id' => $this->code,
-                                                   'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .' '.$distance .' km - arvio  ' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
+                                                   'title' => trim((string)MODULE_SHIPPING_DISTANCE_TEXT_WAY) .' '.$distance .' km - ' .MODULE_SHIPPING_DISTANCE_ESTIMATED .'&nbsp;' .$duration .MODULE_SHIPPING_DISTANCE_TEXT_MIN,
                                                    'cost' =>  $distance_amount)));
     if ($this->tax_class > 0) {
       $this->quotes['tax'] = zen_get_tax_rate($this->tax_class, $order->delivery['country']['id'], $order->delivery['zone_id']);

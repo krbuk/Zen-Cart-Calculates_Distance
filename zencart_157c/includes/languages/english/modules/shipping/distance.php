@@ -22,7 +22,11 @@
 
 define('MODULE_SHIPPING_DISTANCE_TEXT_TITLE', 'Home delivery');
 define('MODULE_SHIPPING_DISTANCE_TEXT_DESCRIPTION', 'The price depends on the order quantity of the place');
-define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', ' mins');
+define('MODULE_SHIPPING_DISTANCE_TEXT_WAY', 'Distance');
+define('MODULE_SHIPPING_DISTANCE_TEXT_MIN', ' min');
 define('MODULE_SHIPPING_DISTANCE_ALERT_TEST', 'Attention: test mode');
 define('MODULE_SHIPPING_DISTANCE_VERSION', 'Google distance version');
+define('MODULE_SHIPPING_DISTANCE_ERROR', 'The request was Invalid');
+define('MODULE_SHIPPING_DISTANCE_WRONG_ADDRESS', 'Destination address not found');
+define('MODULE_SHIPPING_DISTANCE_ESTIMATED', 'estimated');
 ?>
